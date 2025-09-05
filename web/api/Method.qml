@@ -12,6 +12,7 @@ Object {
 	property string type: "GET"; ///< method type, could be any of supported HTTP request types
 	property string name; ///< method name
 	property string path;
+	property int timeout; // optional, ms
 
 	/// @private call implementation
 	function call(api, args) {
@@ -28,6 +29,12 @@ Object {
 		var newHeaders  = this.headers(headers)
 		if (newHeaders !== undefined)
 			headers = newHeaders
+
+		// if Method.timeout is set, apply it (will be removed before being sent as HTTP header by Rest._call)
+		if (typeof this.timeout !== 'undefined') {
+			headers.timeout = this.timeout
+		}
+
 		var path = this.pathArgs(this.path, argsargs)
 
 		api.call(path, callback, error, this.type, data, headers)

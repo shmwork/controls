@@ -57,16 +57,26 @@ Object {
 		if (newHeaders !== undefined)
 			headers = newHeaders
 
+		// extract timeout from headers if present (either set by Method.timeout or by caller)
+		var timeout = undefined;
+		if (typeof headers.timeout !== 'undefined') {
+			timeout = headers.timeout
+			// remove timeout from actual HTTP headers so it is not sent as a header
+			delete headers.timeout
+		}
+
 		++this.activeRequests
 		var url = name
 		var self = this
 
-		apiRequest.ajax({
+		// build request object passed to Request.ajax
+		var req = {
 			method: method || "GET",
 			headers: headers,
 			contentType: 'application/json',
 			url: url,
 			data: data,
+			timeout: timeout,
 			done: function(res) {
 				--self.activeRequests
 				if (res.target && res.target.status >= 400) {
@@ -82,13 +92,13 @@ Object {
 					callback("")
 					return
 				}
-				var res
+				var resParsed
 				try {
-					res = JSON.parse(text)
+					resParsed = JSON.parse(text)
 				} catch (e) {
-					res = text
+					resParsed = text
 				}
-				callback(res)
+				callback(resParsed)
 			},
 			error: function(res) {
 				--self.activeRequests
@@ -96,7 +106,9 @@ Object {
 					error(res)
 				self.error({"url": url, "method": method, "response": res})
 			}
-		})
+		}
+
+		apiRequest.ajax(req)
 	}
 
 	/// @internal top-level call implementation
