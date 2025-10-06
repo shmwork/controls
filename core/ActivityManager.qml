@@ -226,7 +226,6 @@ Item {
 				child.init(topActivity.intent, state)
 				child.index = this._activityStack.length - 1
 				child.start()
-				child.setFocus()
 				this.currentActivity = child.name
 			} else {
 				child.stop()

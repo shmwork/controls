@@ -24,6 +24,7 @@ Object {
 	signal error; ///< all errors signalled here
 	signal internetConnectionLost; ///< some platforms signal when internet connection lost, see onError
 	property int activeRequests; ///< number of currently running requests.
+	property bool blockRequests; ///< if true block any api requests
 
 	constructor: {
 		this._methods = {}
@@ -104,6 +105,7 @@ Object {
 
 	/// @internal top-level call implementation
 	function call(name, callback, error, method, data, head, timeout) {
+		if (this.blockRequests) return
 		if (name.indexOf('://') < 0) {
 			var baseUrl = this.baseUrl
 			if (baseUrl[baseUrl.length - 1] === '/' || name[0] === '/')
