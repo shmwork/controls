@@ -226,6 +226,9 @@ Item {
 				child.init(topActivity.intent, state)
 				child.index = this._activityStack.length - 1
 				child.start()
+				// FIXME: перебивал ручную установку фокуса. Найти проблемное место и подумать как можно решить по другому.
+				// так же из за этого пришлось ревертнуть коммит 24c7f4dbfa21c7750760be6c500613ce10d0877e
+				// child.setFocus()
 				this.currentActivity = child.name
 			} else {
 				child.stop()
