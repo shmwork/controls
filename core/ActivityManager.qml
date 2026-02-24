@@ -213,7 +213,7 @@ Item {
 		var children = this.children
 
 		log('initTopIntent: ' + topActivity.name)
-		for (var i = children.length - 1; i >= 0; --i) {
+		for (var i = 0; i < children.length; ++i) {
 			var child = children[i]
 			if (!child || !(child instanceof _globals.controls.core.BaseActivity))
 				continue
