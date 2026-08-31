@@ -11,7 +11,8 @@
 			Method { name: "getList"; path: "list/{name}"; }
 		}
 		//in js:
-		api.getList(name, function() {...}, function () { ... })
+		var req = api.getList(name, function() {...}, function () { ... })
+		req.cancel()
 	</pre>
 */
 
@@ -45,7 +46,41 @@ Object {
 	function headers(headers) {
 	}
 
+	/**aggregates cancelable request handles into one cancelable
+	usage:
+		var cancel = api.createCancel()
+		cancel.add(api.someMethod(...))
+		cancel.cancel()
+	*/
+	function createCancel() {
+		var handles = []
+		var cancelled = false
+		return {
+			add: function(handle) {
+				if (!handle || !handle.cancel)
+					return handle
+				if (cancelled) {
+					try { handle.cancel() } catch (e) {}
+					return handle
+				}
+				handles.push(handle)
+				return handle
+			},
+			cancel: function() {
+				if (cancelled)
+					return
+				cancelled = true
+				var list = handles
+				handles = []
+				for (var i = 0; i < list.length; i++) {
+					try { list[i].cancel() } catch (e) {}
+				}
+			}
+		}
+	}
+
 	/// @private calls invokes args, headers and ajax, then processes result
+	/// @returns handle with cancel(); cancelled requests do not invoke callback/error
 	function _call(name, callback, error, method, data, head, timeout) {
 		var headers = head || {}
 
@@ -61,8 +96,16 @@ Object {
 		++this.activeRequests
 		var url = name
 		var self = this
+		var settled = false
 
-		apiRequest.ajax({
+		function settle() {
+			if (settled)
+				return
+			settled = true
+			--self.activeRequests
+		}
+
+		var handle = apiRequest.ajax({
 			method: method || "GET",
 			headers: headers,
 			contentType: 'application/json',
@@ -72,7 +115,7 @@ Object {
 			url: url,
 			data: data,
 			done: function(res) {
-				--self.activeRequests
+				settle()
 				if (res.target && res.target.status >= 400) {
 					log("Error in request", res)
 					if (error)
@@ -95,12 +138,20 @@ Object {
 				callback(res)
 			},
 			error: function(res) {
-				--self.activeRequests
+				settle()
 				if (error)
 					error(res)
 				self.error({"url": url, "method": method, "response": res})
 			}
 		})
+
+		return {
+			cancel: function() {
+				if (handle && handle.cancel)
+					handle.cancel()
+				settle()
+			}
+		}
 	}
 
 	/// @internal top-level call implementation
@@ -113,7 +164,7 @@ Object {
 			else
 				name = baseUrl + '/' + name
 		}
-		this._call(name, callback, error, method, JSON.stringify(data), head, timeout)
+		return this._call(name, callback, error, method, JSON.stringify(data), head, timeout)
 	}
 
 	/// @private method registration
@@ -123,7 +174,7 @@ Object {
 
 		var api = this
 		this[name] = function() {
-			method.call(api, arguments)
+			return method.call(api, arguments)
 		}
 	}
 }
