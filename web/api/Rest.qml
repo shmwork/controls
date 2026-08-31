@@ -45,6 +45,39 @@ Object {
 	function headers(headers) {
 	}
 
+	/**bag of abortable requests belonging to one logical operation
+	usage:
+		var cancel = api.createCancel()
+		cancel.add(api.call(...)) // or any handle with abort()
+		cancel.abort()
+	*/
+	function createCancel() {
+		var handles = []
+		return {
+			aborted: false,
+			add: function(handle) {
+				if (!handle || !handle.abort)
+					return handle
+				if (this.aborted) {
+					try { handle.abort() } catch (e) {}
+					return handle
+				}
+				handles.push(handle)
+				return handle
+			},
+			abort: function() {
+				if (this.aborted)
+					return
+				this.aborted = true
+				var list = handles
+				handles = []
+				for (var i = 0; i < list.length; i++) {
+					try { list[i].abort() } catch (e) {}
+				}
+			}
+		}
+	}
+
 	/// @private calls invokes args, headers and ajax, then processes result
 	function _call(name, callback, error, method, data, head, timeout) {
 		var headers = head || {}
@@ -62,7 +95,7 @@ Object {
 		var url = name
 		var self = this
 
-		apiRequest.ajax({
+		return apiRequest.ajax({
 			method: method || "GET",
 			headers: headers,
 			contentType: 'application/json',
@@ -96,6 +129,8 @@ Object {
 			},
 			error: function(res) {
 				--self.activeRequests
+				if (res && res.type === "abort")
+					return
 				if (error)
 					error(res)
 				self.error({"url": url, "method": method, "response": res})
@@ -113,7 +148,7 @@ Object {
 			else
 				name = baseUrl + '/' + name
 		}
-		this._call(name, callback, error, method, JSON.stringify(data), head, timeout)
+		return this._call(name, callback, error, method, JSON.stringify(data), head, timeout)
 	}
 
 	/// @private method registration
