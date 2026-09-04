@@ -55,13 +55,15 @@ BaseMouseMixin {
 			hoveredItems.splice(idx, 1)
 	}
 
-	///@private tracks cursor visibility globally
+	///@private tracks cursor visibility globally via webOS 'cursorStateChange' and drops hover when the cursor disappears
 	function _initCursorStateTracking() {
 		var g = _globals
 		if (g._hoveredItems)
 			return
 		g._hoveredItems = []
 		g._hoverCursorHidden = false
+		if ((g.core.os || '').toLowerCase() !== 'webos') //'cursorStateChange' is a webOS-only event, other platforms may not even have a DOM
+			return
 		document.addEventListener('cursorStateChange', function(event) {
 			g._hoverCursorHidden = !(event.detail && event.detail.visibility)
 			if (g._hoverCursorHidden) {
