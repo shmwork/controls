@@ -211,6 +211,8 @@ Item {
 
 		var topActivity = this._activityStack[this._activityStack.length - 1]
 		var children = this.children
+		var topChild = null
+		var toStop = []
 
 		log('initTopIntent: ' + topActivity.name)
 		for (var i = 0; i < children.length; ++i) {
@@ -218,21 +220,29 @@ Item {
 			if (!child || !(child instanceof _globals.controls.core.BaseActivity))
 				continue
 
-			if (child.name === topActivity.name) {
-				log("Init:", topActivity)
-				var state = topActivity.state || {}
-				if (!state.lastActivity)
-					state.lastActivity = this.currentActivity
-				child.init(topActivity.intent, state)
-				child.index = this._activityStack.length - 1
-				child.start()
-				// FIXME: перебивал ручную установку фокуса. Найти проблемное место и подумать как можно решить по другому.
-				// так же из за этого пришлось ревертнуть коммит 24c7f4dbfa21c7750760be6c500613ce10d0877e
-				// child.setFocus()
-				this.currentActivity = child.name
-			} else {
-				child.stop()
-			}
+			if (child.name === topActivity.name)
+				topChild = child
+			else
+				toStop.push(child)
 		}
+
+		// Start top first so stop()/tryFocus has a valid target before Menu/siblings.
+		if (topChild) {
+			log("Init:", topActivity)
+			var state = topActivity.state || {}
+			if (!state.lastActivity)
+				state.lastActivity = this.currentActivity
+			topChild.init(topActivity.intent, state)
+			topChild.index = this._activityStack.length - 1
+			topChild.start()
+			this.currentActivity = topChild.name
+		}
+
+		for (var j = 0; j < toStop.length; ++j)
+			toStop[j].stop()
+
+		// Restore focus only if stop() stole it (e.g. to Menu). Skip if init already focused a descendant.
+		if (topChild && !topChild.hasActiveFocus())
+			topChild.setFocus()
 	}
 }
