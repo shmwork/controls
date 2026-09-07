@@ -240,9 +240,5 @@ Item {
 
 		for (var j = 0; j < toStop.length; ++j)
 			toStop[j].stop()
-
-		// Restore focus only if stop() stole it (e.g. to Menu). Skip if init already focused a descendant.
-		if (topChild && !topChild.hasActiveFocus())
-			topChild.setFocus()
 	}
 }
