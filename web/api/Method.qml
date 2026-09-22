@@ -31,7 +31,7 @@ Object {
 			headers = newHeaders
 		var path = this.pathArgs(this.path, argsargs)
 
-		api.call(path, callback, error, this.type, data, headers, this.timeout)
+		return api.call(path, callback, error, this.type, data, headers, this.timeout)
 	}
 
 	/// headers override
