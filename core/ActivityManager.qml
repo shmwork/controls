@@ -230,9 +230,17 @@ Item {
 		if (topChild) {
 			log("Init:", topActivity)
 			var state = topActivity.state || {}
+			var lastActivity = this.currentActivity
 			if (!state.lastActivity)
-				state.lastActivity = this.currentActivity
-			topChild.init(topActivity.intent, state)
+				state.lastActivity = lastActivity
+			try {
+				this.currentActivity = topChild.name
+				topChild.init(topActivity.intent, state)
+			} catch (e) {
+				this.currentActivity = lastActivity
+				log(e)
+				return
+			}
 			topChild.index = this._activityStack.length - 1
 			topChild.start()
 			this.currentActivity = topChild.name
