@@ -115,6 +115,7 @@ Object {
 			url: url,
 			data: data,
 			done: function(res) {
+				if (settled) return
 				settle()
 				if (res.target && res.target.status >= 400) {
 					log("Error in request", res)
@@ -138,6 +139,7 @@ Object {
 				callback(res)
 			},
 			error: function(res) {
+				if (settled) return
 				settle()
 				if (error)
 					error(res)
@@ -176,5 +178,10 @@ Object {
 		this[name] = function() {
 			return method.call(api, arguments)
 		}
+	}
+
+	function abortAll() {
+		apiRequest.abortAll()
+		this.activeRequests = 0
 	}
 }
